@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grpc-pod
+spec:
+  containers:
+  - name: hello-server
+    image: maniktaneja/hello_server:latest
+    volumeMounts:
+    - mountPath: /tmp/
+      name: socket-volume
+  - name: hello-client
+    image: maniktaneja/hello_client:latest
+    volumeMounts:
+    - mountPath: /tmp/
+      name: socket-volume
+  volumes:
+  - name: socket-volume
+    emptyDir: {}
