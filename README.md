@@ -21,3 +21,8 @@ docker push  maniktaneja/hello_server:latest
 # deploy the containers
 
 kubectl apply -f grpc.yaml
+
+# build the proto files 
+```
+protoc hello/*.proto --go_out=. --go_opt=paths=source_relative --go-grpc_out=.  --go-grpc_opt=paths=source_relative  --proto_path=.
+```

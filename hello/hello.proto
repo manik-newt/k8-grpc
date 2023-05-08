@@ -8,11 +8,19 @@ package hello;
 service Greeter {
   // Sends a greeting
   rpc SayHello (HelloRequest) returns (HelloReply) {}
+  // The client registers a frequency in seconds and server
+  // responds with a hello message
+  rpc ClientNotify (HelloFrequency) returns (stream HelloReply) {}
 }
 
 // The request message containing the user's name.
 message HelloRequest {
   string name = 1;
+}
+
+message HelloFrequency {
+  string client_id = 1;
+  uint32 frequency = 2;
 }
 
 // The response message containing the greetings
