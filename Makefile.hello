@@ -1,0 +1,15 @@
+.PHONY: all build push
+
+all: build push
+
+build:
+	protoc hello/*.proto --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative --proto_path=.
+	docker build -t hello_client:latest -f Dockerfile.client .
+	docker build -t hello_server:latest -f Dockerfile.server .
+
+push:
+	docker tag hello_client:latest maniktaneja/hello_client:latest
+	docker tag hello_server:latest maniktaneja/hello_server:latest
+	docker push maniktaneja/hello_client:latest
+	docker push maniktaneja/hello_server:latest
+

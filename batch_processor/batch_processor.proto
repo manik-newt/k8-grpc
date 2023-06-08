@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+option go_package = "github.com/maniknutanix/k8-grpc/bacth_processor;batch_processor";
+
+package batch_processor;
+
+// Batch processor service definition. The server will batch requests based
+// on the type of requests that come into the processor. CreateRequests will
+// be put on a high priority queue that will be processed every 1 second.
+// Delete requests are put on a medium priroity queue that are processed every
+// 10 seconds and finally the Notify requests will be placed on the lowest
+// priority queue that will be processed every 30 seconds. These values are
+// configurable.
+
+service BatchProcessor {
+
+  // Send a create request. This can either be a create snapshot or
+  // create replication request. This call will return immediately with
+  // unique request ID. The client then should use the same request ID
+  // to monitor the state of the Create Snapshot/ Clone
+  rpc CreateRequest(CreateRequestMsg) returns (CreateResponseMsg) {}
+
+  // Bidirectional NotifyProgress, in this case the client sends a stream of
+  // NotifyProgress messages on the same grpc stream and expects a stream of
+  // NotifyProgressResponseMgs in the response stream.
+  rpc NotifyProgressStream(stream NotifyProgressRequestMsg) returns (stream ProgressResponseMsg) {}
+
+  // Called when the client is no longer interested in receiving progress up[dates
+  // for a particular requestID.
+  rpc UnsubscribeProgress(UnsubscribeProgressMsg) returns (UnsubscribeProgressMsg){}
+
+  // Resume the notification progress request. This gets called if the client gets
+  // disconnected and needs to resume the progress of the notification. This is different
+  // from the NotifyProgress API, in this case the server needs the payload that was sent
+  // in the CreateRequest so that it can check if the previous Create request was successful
+  // and if it was then it would return a stream of ProgressResponseMsg
+  rpc NotifyResume(CreateRequestMsg) returns (stream ProgressResponseMsg) {}
+
+  // Delete snapshot / clone requests. This has similar semantics to the CreateRequest,
+  // and we return with a delete request ID that the client should monitor using the
+  // NotifiyProgressCall
+  rpc DeleteRequest(DeleteRequestMsg) returns (DeleteResponseMsg) {}
+}
+
+// Batch override constants
+enum batch_operation {
+  BATCH_NORMAL = 0;
+  BATCH_OVERRIDE = 1;   // execute operation immediately
+}
+
+// Request personality types
+enum RequestType {
+    UNKNOWN = 0;
+    SNAPSHOT = 1;
+    CLONE = 2;
+}
+
+// The CreateRequest Message.
+message CreateRequestMsg {
+
+  RequestType rtype = 1;             // Request type
+  string name = 2;                   // name of the snapshot or the clone
+  batch_operation batch_mode = 3;    // Tell the server to execute now or batch
+
+  // Additonal protos specific to CreateRequests go here
+}
+
+
+message CreateResponseMsg {
+
+  string create_request_id = 1;  // snapshot / clone id
+  string status_msg = 2;         // additional status message
+
+  // Additional protos specific to CreateResponses go here
+}
+
+//Frequency at which notifications are being requested
+message NotifyProgressRequestMsg {
+
+  // Request Id that is returned from CreateRequest
+  string request_id = 1;
+
+  // Request type, should match the same type that was passed during the create.
+  RequestType rtype = 2;
+}
+
+
+message ProgressResponseMsg {
+
+  string request_id = 1; // unique request id
+
+  enum Progress {
+    IN_PROGRESS = 0;
+    COMPLETED = 1;
+    TERMINATED = 2;  // if there was a completion error
+  }
+
+  Progress task_progress = 2;
+  string status_msg = 3;
+}
+
+message UnsubscribeProgressMsg {
+  // ReuqestID to unsubscribe for
+  string request_id = 1;
+  // Response message from the server
+  string status_msg = 2;
+}
+
+// Returns an response message
+message ResponseErrorMsg {
+  string response_msg = 1;
+}
+
+message DeleteRequestMsg {
+
+  // request id returned by CreateRequest
+  string delete_resource_name = 1;
+
+  // type of request
+  RequestType rtype = 2;
+
+  // batch overide
+  batch_operation batch_mode  = 3;
+
+  // Additional payload goes here
+}
+
+message DeleteResponseMsg {
+
+  string delete_request_id = 1;  // snapshot / clone id
+  string status_msg = 2;  // additional status message
+
+  // Additional protos specific to DeleteResponse go here
+}

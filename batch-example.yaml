@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-processor-pod
+spec:
+  containers:
+  - name: batch-server
+    image: maniktaneja/batch_server:latest
+    volumeMounts:
+    - mountPath: /tmp/
+      name: socket-volume
+  - name: batch-client
+    image: maniktaneja/batch_client:latest
+    volumeMounts:
+    - mountPath: /tmp/
+      name: socket-volume
+  volumes:
+  - name: socket-volume
+    emptyDir: {}

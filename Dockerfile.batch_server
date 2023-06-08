@@ -1,0 +1,19 @@
+# Use the official Go image as the base image
+FROM golang:1.17.1 as builder
+
+WORKDIR /app/
+
+COPY batch_server /app/batch_server
+COPY batch_processor /app/batch_processor
+COPY go.mod /app
+COPY go.sum /app
+
+RUN CGO_ENABLED=0 GOARCH=amd64 go build -o app ./batch_server
+
+# Use a minimal base image to reduce image size
+FROM alpine:3.15
+
+COPY --from=builder /app/app /app/app
+
+CMD ["/app/app"]
+
